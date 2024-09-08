@@ -1,0 +1,84 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven {
+			url "https://plugins.gradle.org/m2/"
+		}
+	}
+	dependencies {
+		classpath "org.openapitools:openapi-generator-gradle-plugin:7.0.1"
+	}
+}
+
+
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.3.3'
+	id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'msa.project'
+version = '0.0.1-SNAPSHOT'
+
+apply plugin: "org.openapi.generator"
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	compileOnly 'org.projectlombok:lombok'
+	runtimeOnly 'com.h2database:h2'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	//manual dependencies
+	implementation 'org.mapstruct:mapstruct:1.5.3.Final'
+	annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.3.Final'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+	//openapi dependencies
+	implementation 'io.swagger.core.v3:swagger-annotations:2.2.15'
+}
+
+tasks.register('buildSpringServer', org.openapitools.generator.gradle.plugin.tasks.GenerateTask) {
+	generatorName = "spring"
+	inputSpec = "src/main/resources/openapi.yaml".toString()
+	outputDir = "$buildDir/generated".toString()
+	apiPackage = "msa.project.person.server"
+	modelPackage = "msa.project.person.server.models"
+	library = "spring-boot"
+	configOptions = [
+			useSpringBoot3: "true",
+			serializableModel: "true",
+			dateLibrary: "java8",
+			openApiNullable: "false",
+			configPackage: "msa.project.person",
+			sourceFolder: "src/main/java",
+			basePackage: "msa.project",
+			interfaceOnly: "true"
+	]
+}
+
+compileJava.dependsOn buildSpringServer
+
+sourceSets.main.java.srcDirs = ["$buildDir/generated/src/main/java", "src/main/java"]
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
